@@ -57,9 +57,35 @@ test/test_clock.cpp host unit test (no hardware needed)
 ## Build, test, flash
 
 ```sh
-pio run                       # build firmware
-pio run -t upload             # flash to the board over /dev/ttyUSB0
-pio device monitor            # serial console (115200 baud)
+./flash.sh          # build + flash over USB serial (default)
+./flash.sh ota      # build + flash over WiFi (ArduinoOTA), no cable needed
+```
+
+`flash.sh` builds the firmware and uploads it, either over the USB serial
+port or over WiFi. How to choose:
+
+- **Serial** (`./flash.sh` or `./flash.sh serial`) — the safe default. Works
+  no matter what state the device is in, as long as it is plugged in via
+  USB (`/dev/ttyUSB0`). Use this for the first flash after a fresh chip,
+  and to recover if an OTA-pushed firmware ever breaks WiFi.
+- **OTA** (`./flash.sh ota`) — requires the device to be powered, connected
+  to WiFi and reachable as `WordClock.lan` (the DHCP hostname it announces;
+  falls back to `192.168.8.115`). The upload goes through `ArduinoOTA` on
+  TCP port 8266 and is authenticated with the password from
+  `include/secrets.h` — the script reads it from there, so the device and
+  the uploader always match.
+
+During an OTA transfer the clock pauses for about a minute (no web page,
+frozen matrix), then reboots into the new firmware.
+
+Plain PlatformIO commands still work:
+
+```sh
+pio run                                # build firmware
+pio run -e d1_mini_lite -t upload      # flash over USB serial
+pio run -e d1_mini_lite_ota -t upload  # flash over WiFi (needs
+                                       # WORDCLOCK_OTA_PASSWORD set)
+pio device monitor                     # serial console (115200 baud)
 ```
 
 The logic is covered by a host test that checks all specification examples,
@@ -83,6 +109,7 @@ create it yourself:
 #pragma once
 const char *WIFI_SSID = "your-network";
 const char *WIFI_PASSWORD = "your-password";
+const char *OTA_PASSWORD = "your-ota-password";  // for ./flash.sh ota
 ```
 
 NTP servers and the time zone (CET/CEST with automatic DST) are constants at

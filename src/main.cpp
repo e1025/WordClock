@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <ArduinoOTA.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <time.h>
@@ -136,6 +137,31 @@ void setup() {
   Serial.print(WiFi.RSSI());
   Serial.println(" dBm");
 
+  // OTA updates over WiFi (ArduinoOTA); password comes from secrets.h
+  ArduinoOTA.setPort(8266);
+  ArduinoOTA.setHostname("WordClock");
+  ArduinoOTA.setPassword(OTA_PASSWORD);
+  ArduinoOTA.onStart([]() { Serial.println(F("OTA update: start")); });
+  ArduinoOTA.onEnd([]() { Serial.println(F("\nOTA update: end, rebooting")); });
+  ArduinoOTA.onProgress([](unsigned int done, unsigned int total) {
+    Serial.printf("OTA progress: %u%%\r", done * 100 / total);
+  });
+  ArduinoOTA.onError([](ota_error_t error) {
+    Serial.printf("OTA error[%u]: ", error);
+    if (error == OTA_AUTH_ERROR) {
+      Serial.println(F("auth failed"));
+    } else if (error == OTA_BEGIN_ERROR) {
+      Serial.println(F("start failed"));
+    } else if (error == OTA_CONNECT_ERROR) {
+      Serial.println(F("connect failed"));
+    } else if (error == OTA_RECEIVE_ERROR) {
+      Serial.println(F("receive failed"));
+    } else if (error == OTA_END_ERROR) {
+      Serial.println(F("end failed"));
+    }
+  });
+  ArduinoOTA.begin();
+
   server.on("/", HTTP_GET, handleRoot);
   server.onNotFound(handleNotFound);
   server.begin();
@@ -154,6 +180,7 @@ void setup() {
 
 void loop() {
   server.handleClient();
+  ArduinoOTA.handle();
   updateFrame();
 
   if (!timeSynced && time(nullptr) > 1000000000UL) {
