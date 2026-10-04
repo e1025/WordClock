@@ -109,6 +109,7 @@ void setup() {
   initFrameGray();
 
   WiFi.mode(WIFI_STA);
+  WiFi.hostname("WordClock");  // DHCP option 12, shown in the router's client list
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   Serial.print("Connecting to ");
   Serial.print(WIFI_SSID);
